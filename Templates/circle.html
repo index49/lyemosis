@@ -1,0 +1,102 @@
+<!doctype html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>Circle</title>
+    <script type="text/javascript" src="http://d3js.org//d3.v3.js"></script>
+</head>
+
+<body>
+    <script type="text/javascript">
+
+    // frame
+    var W = 960;
+    var H = 500;
+    var N = 50;
+
+    var outerRadius = 100;
+    var innerRadius = outerRadius - 10;
+    var cx = W / 2;
+    var cy = H / 2;
+
+    var svg = d3.select("body").append("svg")
+                .attr("width", W)
+                .attr("height", H);
+    var group = svg.append("g");
+
+    //Easy colors accessible via a 10-step ordinal scale
+    var colors = d3.scale.category10();
+
+    // text
+    group.append("text")
+            .attr("x", cx)
+            .attr("y", cy)
+            .text("Circles");
+
+
+
+
+    // circle
+    var circle = group.append("svg:a")
+                    .attr("xlink:href", function(d){return "amortization.html";})
+                    .append("circle")
+                    .attr("cx", cx)
+                    .attr("cy", cy)
+                    .attr("r", innerRadius - 5)
+                    .attr("fill", "rgba(255,255,0,.2)");
+
+    // circle hover
+    circle.on("mouseover", function() {
+            d3.select(this)
+                .transition()
+                .duration(200)
+                .attr("fill", "rgba(255,255,0,.4)");
+            d3.selectAll("path")
+                .style("visibility", "visible")
+                .transition()
+                .ease("linear")
+                .duration(100000)
+                .attrTween("transform", function() { 
+                    return d3.interpolateString("rotate(0)", "rotate(18000)"); 
+                })
+                .each("end", cycle)
+    });
+    circle.on("mouseout", function() {
+            d3.select(this)
+                .transition()
+                .duration(200)
+                .attr("fill", "rgba(255,255,0,.2)");
+            d3.selectAll("path")
+                .style("visibility", "hidden")
+    });
+
+    // ring data
+    var ringset = [];
+    for (var i = 0; i < N; i++)
+        ringset.push(Math.random() * H * .1);
+
+    var arc = d3.svg.arc()
+                    .innerRadius(innerRadius)
+                    .outerRadius(outerRadius);
+    var pie = d3.layout.pie();
+
+    //Set up pie
+    var arcs = group.selectAll("g.arc")
+                  .data(pie(ringset))
+                  .enter()
+                  .append("g")
+                  .style("visibility", "hidden")
+                  .attr("class", "arc")
+                  .attr("transform", "translate(" + cx + "," + cy + ")");
+    
+    //Draw arc paths
+    arcs.append("path")
+        .attr("fill", function(d, i) {
+            return colors(i);
+        })
+        .attr("d", arc);
+    </script>
+</body>
+
+</html>

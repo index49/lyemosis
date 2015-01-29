@@ -1,0 +1,15 @@
+#Project ID: lyemosis 
+#Project Number: 637239282909
+#Address: http://lyemosis.appspot.com/
+#Author: Vi Nguyen
+#Service Account Name: lyemosis@appspot.gserviceaccount.com
+
+application: lyemosis
+version: 1
+runtime: python27
+api_version: 1
+threadsafe: true
+
+handlers:
+- url: /.*
+  script: app.application
