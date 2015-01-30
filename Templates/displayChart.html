@@ -169,6 +169,20 @@ function InitChart()
 		.attr("transform", "translate(" + (MARGINS.left) + ",0)")
 		.call(yAxis);
 
+
+	var circles = vis.selectAll("circle").data(data);
+	circles.enter()
+		.append("svg:circle")
+		.attr("stroke", "black")      // sets the circle border
+		.attr("r", 10)                // sets the radius 
+		.attr("cx", function(d) {     // transforms the year data so that it 
+			return xScale(d.year);    // can be plotted in the svg space 
+		})
+		.attr("cy", function(d) {     // transforms the count data so that it 
+			return yScale(d.count);   // can be plotted in the svg space 
+		})
+		.style("fill", "red")         // sets the circle color
+
 }
 
 InitChart();

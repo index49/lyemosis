@@ -3,6 +3,7 @@ import webapp2
 from google.appengine.ext.webapp import template
 from apiclient.discovery import build
 from oauth2client.appengine import AppAssertionCredentials
+from google.appengine.api import users
 
 url = 'https://www.googleapis.com/auth/bigquery'
 PROJECT_NUMBER = '637239282909'
@@ -16,7 +17,7 @@ class ShowHome(webapp2.RequestHandler):
 		temp_data = {}
 		temp_path = 'Templates/index.html'
 		self.response.out.write(template.render(temp_path, temp_data))
-	 
+
 class ShowChartPage(webapp2.RequestHandler):
 	def get(self):
 		temp_data = {}
@@ -32,8 +33,6 @@ class DisplayChart(webapp2.RequestHandler):
 		temp_data = {}
 		temp_path = 'Templates/displayChart.html'
 		self.response.out.write(template.render(temp_path, temp_data))
-			 
-	 
 		 
 ## Here is the WSGI application instance that routes requests
 application = webapp2.WSGIApplication([
