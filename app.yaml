@@ -15,3 +15,7 @@ threadsafe: true
 handlers:
 - url: /.*
   script: app.application
+
+libraries:
+- name: webapp2
+  version: latest
