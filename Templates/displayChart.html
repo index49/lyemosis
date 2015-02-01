@@ -16,44 +16,14 @@
 	<meta name="google-signin-scope" content="profile" />
 	<meta name="google-signin-cookiepolicy" content="single_host_origin" />
 
-
-<!------------------------------- SCRIPT -------------------------------------->
-<script>
-function RefreshChart() 
-{
-    var text = "ignoring";//$('#inputField').val();
-    $.ajax({
-        type: "GET",
-        url: "/getCircleData",
-        data: {
-            inputData: text
-        },
-        dataType: "json",
-        success: function(response) {
-			CreateChart(response);
-        },
-        error: function(xhr, errorType, exception) {  
-           console.log('Error occured');
-        }
-    });
-}
-
-$(document).ready(function () {
-	RefreshChart();
-});
-
-
-
-</script>
-    
-
 </head>
 
 <!------------------------------- BODY -------------------------------------->
 <body>
     <div class="container">
 
-		<p id="name">Player:</p>
+		<p id="name"></p>
+		<p id="email"></p>
 		<button id="signinButton">Sign in with Google</button>
 
         <!-- Jumbotron -->
@@ -81,7 +51,7 @@ $("#D3line").mouseup(function(e) {
         data: {
             x: x,
             y: y,
-            name: 'NA',
+            email: $('#email').text,
         },
         dataType: "json",
         success: function(response) {
@@ -153,10 +123,10 @@ signinButton.addEventListener('click', function() {
 });
 
 
-function signinCallback( authResult ) {
-
-	if ( authResult[ 'status']['signed_in'] ) {
-
+function signinCallback( authResult ) 
+{
+	if ( authResult[ 'status']['signed_in'] ) 
+	{
 		gapi.auth.setToken( authResult );
 		gapi.client.load( 'plus', 'v1', function() {
 			getName();
@@ -171,32 +141,79 @@ function signinCallback( authResult ) {
 	}
 
 }
-function getName() {
-
+var myName;
+var myEmail;
+function getName() 
+{
 	var request = gapi.client.plus.people.get( { 'userId': 'me' } );
-	request.execute( function ( resp ) {
+	request.execute( function ( resp ) 
+	{
 		var username = String( resp.displayName ).split( ' ' );
 		console.log('name = ' + username[0]);
-		$( '#name' ).text( 'Player: ' + username[0] + ' ' + username[1] );
+		$( '#name' ).text( username[0] ); //first name
+		myName = username[0];
 	});	
-
 }
 
-function getEmail(){
-
-	gapi.client.load( 'oauth2', 'v2', function() {
+function getEmail()
+{
+	gapi.client.load( 'oauth2', 'v2', function() 
+	{
 		var request = gapi.client.oauth2.userinfo.get();
-		request.execute( function ( resp ) {	
-
-			if ( resp[ 'email' ] ) {
+		request.execute( function ( resp ) 
+		{	
+			if ( resp[ 'email' ] ) 
+			{
 				console.log('email = ' + resp['email']);
-				//$( '#email' ).text( 'Email ' + resp[ 'email' ] );
+				$( '#email' ).text( resp[ 'email' ] );
+				myEmail = resp['email'];
+
+				// add name to players db
+				$.ajax({
+					type: "POST",
+					url: "/addPlayer",
+					data: {
+						name: myName,
+						email: myEmail
+					},
+					dataType: "json",
+					success: function(response) {
+						//RefreshChart();
+					},
+					error: function(xhr, errorType, exception) {  
+					   console.log('Error occured');
+					}
+				});
 			}
 
 		});
 	});
 
 }
+
+function RefreshChart() 
+{
+    var text = "ignoring";//$('#inputField').val();
+    $.ajax({
+        type: "GET",
+        url: "/getCircles",
+        data: {
+            inputData: text
+        },
+        dataType: "json",
+        success: function(response) {
+			CreateChart(response);
+        },
+        error: function(xhr, errorType, exception) {  
+           console.log('Error occured');
+        }
+    });
+}
+
+$(document).ready(function () {
+	RefreshChart();
+});
+
 </script>
 </body>
 </html>

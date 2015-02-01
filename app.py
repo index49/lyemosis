@@ -20,6 +20,12 @@ bigquery_service = build('bigquery','v2',http=httpss)
 DEFAULT_CIRCLE_DB_NAME = 'default_circle_db'
 DEFAULT_PLAYER_DB_NAME = 'default_player_db'
 
+tableau20 = [(31, 119, 180), (174, 199, 232), (255, 127, 14), (255, 187, 120),  
+             (44, 160, 44), (152, 223, 138), (214, 39, 40), (255, 152, 150),  
+             (148, 103, 189), (197, 176, 213), (140, 86, 75), (196, 156, 148),  
+             (227, 119, 194), (247, 182, 210), (127, 127, 127), (199, 199, 199),  
+             (188, 189, 34), (219, 219, 141), (23, 190, 207), (158, 218, 229)]
+
 # returns the db?
 def circle_db_key(circle_db_name = DEFAULT_CIRCLE_DB_NAME):
 	return ndb.Key('CircleDB', circle_db_name)
@@ -28,7 +34,9 @@ def player_db_key(player_db_name = DEFAULT_PLAYER_DB_NAME):
 
 class Player(ndb.Model):
 	name = ndb.StringProperty(indexed = False)
+	email = ndb.StringProperty(indexed = False)
 	color = ndb.StringProperty(indexed = False)
+	date = ndb.DateTimeProperty(auto_now_add=True)
 
 class Circle(ndb.Model):
 	player = ndb.StructuredProperty(Player)
@@ -44,22 +52,50 @@ class PollCircleData(webapp2.RequestHandler):
 		circles = Circle.query(ancestor=circle_db_key(DEFAULT_CIRCLE_DB_NAME)).order(Circle.date)
 		self.response.out.write(str(circles.count()))
 
-# AddCircle
-#	http://localhost:8080/addCircle?x=200&y=100&name=usrname
-class AddCircle(webapp2.RequestHandler):
-
+class AddPlayer(webapp2.RequestHandler):
 	def post(self):
+
+		# get posted data
+		name = self.request.get('name')
+		email = self.request.get('email')
+		print name, email
+
+		# get current db
+		player_db_name = self.request.get('player_db_name', DEFAULT_PLAYER_DB_NAME)
+		players = Player.query(ancestor=player_db_key(DEFAULT_PLAYER_DB_NAME)).order(Player.date)
+
+		# check if player already exists
+		for p in players:
+			if p.email == email and p.name == name:
+				print 'player already added', name
+				return
+
+		# add new player to db
+		player = Player(parent=player_db_key(player_db_name))
+		player.name = name
+		player.email = email
+		player.color = 'red' #tableau20(players.count())
+		player.put()
+
+# AddCircle
+#	
+class AddCircle(webapp2.RequestHandler):
+	def post(self):
+
+		# get posted data
+		email = int(self.request.get('email'))
+		x = int(self.request.get('x'))
+		y = int(self.request.get('y'))
 
 		# get db name 
 		circle_db_name = self.request.get('circle_db_name', DEFAULT_CIRCLE_DB_NAME)
 		circles = Circle.query(ancestor=circle_db_key(DEFAULT_CIRCLE_DB_NAME)).order(Circle.date)
 
-		# create item to add
-		circle = Circle(parent=circle_db_key(circle_db_name))
-		circle.player = Player(
-			name = self.request.get('name'), color = 'blue')
-		circle.x = int(self.request.get('x'))
-		circle.y = int(self.request.get('y'))
+		# get player
+		player = Player.query(Player.email == email).order(Player.date).fetch(1)
+		if not player:
+			print 'ERROR -- attempting to add circle without player'
+			return
 
 		# check if circle already exists
 		radius = 10 #pixels
@@ -71,16 +107,33 @@ class AddCircle(webapp2.RequestHandler):
 			if d < radius:
 				addFlag = False
 				c.key.delete()
-				break
+				return
 
-		# add to db
-		if addFlag is True:
-			circle.put()
+		# add new item to db
+		circle = Circle(parent=circle_db_key(circle_db_name))
+		circle.player = player
+		circle.x = x
+		circle.y = y
+		circle.put()
 
-		# redirect to get data page
-		#self.redirect('/displayChart?')
+class GetPlayers(webapp2.RequestHandler):
+	def get(self):
 
-class GetCircleData(webapp2.RequestHandler):
+		# get db name, else use default
+		player_db_name = self.request.get('player_db_name', DEFAULT_PLAYER_DB_NAME)
+
+		# query db
+		resp = []
+		players = Player.query(ancestor=player_db_key(DEFAULT_PLAYER_DB_NAME)).order(Player.date)
+		for p in players:
+			resp.append({ 'name': p.name, 'c': p.color})
+
+		# send player data back as json
+		self.response.headers['Content-Type'] = 'application/json'
+		self.response.out.write(json.dumps(resp))
+
+
+class GetCircles(webapp2.RequestHandler):
 	def get(self):
 
 		# get db name, else use default
@@ -118,14 +171,6 @@ class DisplayChart(webapp2.RequestHandler):
 		temp_path = 'Templates/displayChart.html'
 		self.response.out.write(template.render(temp_path, temp_data))
 
-		#TODO
-		#if users.get_current_user():
-		#	print users.get_current_user().user_id()
-		#	#print users.get_current_user().email()
-		#else:
-		#	self.redirect(users.create_login_url(self.request.uri))
-
-
 class GetChartData(webapp2.RequestHandler):
 	def get(self):
 		inputData = self.request.get("inputData")
@@ -144,6 +189,8 @@ application = webapp2.WSGIApplication([
 	('/getChartData', GetChartData),
 	('/pollCircleData', PollCircleData),
 	('/addCircle', AddCircle),
-	('/getCircleData', GetCircleData),
+	('/addPlayer', AddPlayer),
+	('/getCircles', GetCircles),
+	('/getPlayers', GetPlayers),
 	('/', ShowHome),
 ], debug=True)
