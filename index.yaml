@@ -1,0 +1,6 @@
+indexes:
+- kind: Circle
+  ancestor: yes
+  properties:
+  - name: date
+    direction: desc
