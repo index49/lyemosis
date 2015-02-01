@@ -11,6 +11,11 @@
     <script type="text/javascript" src="http://d3js.org//d3.v3.js"></script>
     <script src="https://code.jquery.com/jquery-1.7.1.min.js"></script>
 
+	<script src="https://apis.google.com/js/client:platform.js" async defer></script>
+	<meta name="google-signin-clientid" content="637239282909-4msf0u4lojej7cibrpi062fl164mt3ad.apps.googleusercontent.com" />
+	<meta name="google-signin-scope" content="profile" />
+	<meta name="google-signin-cookiepolicy" content="single_host_origin" />
+
 
 <!------------------------------- SCRIPT -------------------------------------->
 <script>
@@ -36,6 +41,9 @@ function RefreshChart()
 $(document).ready(function () {
 	RefreshChart();
 });
+
+
+
 </script>
     
 
@@ -44,6 +52,9 @@ $(document).ready(function () {
 <!------------------------------- BODY -------------------------------------->
 <body>
     <div class="container">
+
+		<p id="name">Player:</p>
+		<button id="signinButton">Sign in with Google</button>
 
         <!-- Jumbotron -->
         <div id="D3line" class="jumbotron">
@@ -60,7 +71,7 @@ $(document).ready(function () {
 <!------------------------------- SCRIPT -------------------------------------->
 <script>
 
-$("#D3line").mousedown(function(e) {
+$("#D3line").mouseup(function(e) {
 	x = e.offsetX;
 	y = e.offsetY;
 
@@ -87,18 +98,20 @@ function CreateChart(data)
 {
 	var vis = d3.select("#visualization");
 
+	// clear circles first
+    vis.selectAll("circle")
+        .data([])
+            .exit()
+            .remove();
+
 	var circles = vis.selectAll("circle").data(data);
 	circles.enter()
 		.append("svg:circle")
 		.attr("stroke", "black")
 		.attr("r", 10)
-		.attr("cx", function (d) {
-			return d.x;
-		})
-			.attr("cy", function (d) {
-			return d.y;
-		})
-		.style("fill", "red")
+		.attr("cx", function (d) { return d.x; })
+		.attr("cy", function (d) { return d.y; })
+		.style("fill", function (d) { return d.c; })
 }
 
 
@@ -128,6 +141,62 @@ var refreshId = setInterval(function() {
 }, 2000);
 
 
+// Attach a click listener to a button to trigger the flow.
+var signinButton = document.getElementById('signinButton');
+signinButton.addEventListener('click', function() {
+	gapi.auth.signIn({
+		'clientid': "637239282909-4msf0u4lojej7cibrpi062fl164mt3ad.apps.googleusercontent.com",
+		'cookiepolicy': "single_host_origin",
+		'scope': "profile",
+		'callback': 'signinCallback'
+	});
+});
+
+
+function signinCallback( authResult ) {
+
+	if ( authResult[ 'status']['signed_in'] ) {
+
+		gapi.auth.setToken( authResult );
+		gapi.client.load( 'plus', 'v1', function() {
+			getName();
+		});
+
+        getEmail();    
+		$( '#revokeButton' ).show().data( 'loggedInWith', 'g+' ).text( 'Revoke G+' );
+		$( '#gSignInWrapper' ).css( 'display', 'none' );
+	} 
+	else if ( authResult[ 'error' ] ) {
+		console.log( 'Sign-in state: ' + authResult[ 'error' ] );
+	}
+
+}
+function getName() {
+
+	var request = gapi.client.plus.people.get( { 'userId': 'me' } );
+	request.execute( function ( resp ) {
+		var username = String( resp.displayName ).split( ' ' );
+		console.log('name = ' + username[0]);
+		$( '#name' ).text( 'Player: ' + username[0] + ' ' + username[1] );
+	});	
+
+}
+
+function getEmail(){
+
+	gapi.client.load( 'oauth2', 'v2', function() {
+		var request = gapi.client.oauth2.userinfo.get();
+		request.execute( function ( resp ) {	
+
+			if ( resp[ 'email' ] ) {
+				console.log('email = ' + resp['email']);
+				//$( '#email' ).text( 'Email ' + resp[ 'email' ] );
+			}
+
+		});
+	});
+
+}
 </script>
 </body>
 </html>
